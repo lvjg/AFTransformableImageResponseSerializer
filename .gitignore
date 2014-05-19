@@ -1,0 +1,33 @@
+#.gitignore
+
+# xcode noise
+build/
+*.xcworkspace
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+xcuserdata
+*.moved-aside
+DerivedData
+
+# cocoaPods
+Podfile.lock
+Pods/
+
+# old skool
+.svn
+
+
+# osx noise
+.DS_Store
+profile
+
+
+# vim noise
+*~
+*.swp
+
+
+# AppCode noise
+.idea/
