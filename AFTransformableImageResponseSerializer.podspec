@@ -7,8 +7,9 @@ Pod::Spec.new do |s|
 
 # Source Info
   s.platform     =  :ios, '6.0'
-  s.source       =  {:git => 'https://github.com/marchisfy/AFTransformableImageResponseSerializer.git'}
+  s.source       =  {:git => 'https://github.com/marchisfy/AFTransformableImageResponseSerializer.git', :tag => "v#{s.version}"}
   s.source_files = 'AFTransformableImageResponseSerializer/*.{h,m}'
+  s.frameworks   = 'Foundation', 'UIKit'
   
   s.requires_arc = true
   
