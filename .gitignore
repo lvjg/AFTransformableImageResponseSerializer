@@ -8,6 +8,7 @@ build/
 *.mode2v3
 *.perspectivev3
 xcuserdata
+*.xcuserstate
 *.moved-aside
 DerivedData
 
