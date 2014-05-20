@@ -8,6 +8,112 @@
 
 #import "AFWebImageCache.h"
 #import <CommonCrypto/CommonDigest.h>
+@import ImageIO;
+
+#pragma mark - Helper
+static NSString *AFMD5Digest(NSString *string)
+{
+    if(string == nil || [string length] == 0)
+        return nil;
+    
+    const char *cStr = [string UTF8String];
+    unsigned char result[CC_MD5_DIGEST_LENGTH];
+    CC_MD5( cStr, (unsigned int) strlen(cStr), result);
+    return [[NSString alloc] initWithFormat:
+			@"%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
+			result[0], result[1], result[2], result[3],
+			result[4], result[5], result[6], result[7],
+			result[8], result[9], result[10], result[11],
+			result[12], result[13], result[14], result[15]
+			];
+}
+
+#pragma mark -
+static UIImage *AFDecompressedImageWithCGImage(CGImageRef imageRef)
+{
+    const CGBitmapInfo originalBitmapInfo = CGImageGetBitmapInfo(imageRef);
+    
+    // See: http://stackoverflow.com/questions/23723564/which-cgimagealphainfo-should-we-use
+    const uint32_t alphaInfo = (originalBitmapInfo & kCGBitmapAlphaInfoMask);
+    CGBitmapInfo bitmapInfo = originalBitmapInfo;
+    switch (alphaInfo)
+    {
+        case kCGImageAlphaNone:
+            bitmapInfo &= ~kCGBitmapAlphaInfoMask;
+            bitmapInfo |= kCGImageAlphaNoneSkipFirst;
+            break;
+        case kCGImageAlphaPremultipliedFirst:
+        case kCGImageAlphaPremultipliedLast:
+        case kCGImageAlphaNoneSkipFirst:
+        case kCGImageAlphaNoneSkipLast:
+            break;
+        case kCGImageAlphaOnly:
+        case kCGImageAlphaLast:
+        case kCGImageAlphaFirst:
+        { // Unsupported
+            return [UIImage imageWithCGImage:imageRef scale:[UIScreen mainScreen].scale orientation:UIImageOrientationUp];
+        }
+            break;
+    }
+    
+    const CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
+    const CGSize imageSize = CGSizeMake(CGImageGetWidth(imageRef), CGImageGetHeight(imageRef));
+    const CGContextRef context = CGBitmapContextCreate(NULL,
+                                                       imageSize.width,
+                                                       imageSize.height,
+                                                       CGImageGetBitsPerComponent(imageRef),
+                                                       0,
+                                                       colorSpace,
+                                                       bitmapInfo);
+    CGColorSpaceRelease(colorSpace);
+    
+    UIImage *image;
+    const CGFloat scale = [UIScreen mainScreen].scale;
+    if (context)
+    {
+        const CGRect imageRect = CGRectMake(0, 0, imageSize.width, imageSize.height);
+        CGContextDrawImage(context, imageRect, imageRef);
+        const CGImageRef decompressedImageRef = CGBitmapContextCreateImage(context);
+        CGContextRelease(context);
+        image = [UIImage imageWithCGImage:decompressedImageRef scale:scale orientation:UIImageOrientationUp];
+        CGImageRelease(decompressedImageRef);
+    }
+    else
+    {
+        image = [UIImage imageWithCGImage:imageRef scale:scale orientation:UIImageOrientationUp];
+    }
+    return image;
+}
+
+static UIImage *AFDecompressedImageWithData(NSData *imageData)
+{
+    const CGImageSourceRef sourceRef = CGImageSourceCreateWithData((__bridge CFDataRef)imageData, NULL);
+    
+    // Ideally we would simply use kCGImageSourceShouldCacheImmediately but as of iOS 7.1 it locks on copyImageBlockSetJPEG which makes it dangerous.
+    // CGImageRef imageRef = CGImageSourceCreateImageAtIndex(source, 0, (__bridge CFDictionaryRef)@{(id)kCGImageSourceShouldCacheImmediately: @YES});
+    
+    UIImage *image = nil;
+    const CGImageRef imageRef = CGImageSourceCreateImageAtIndex(sourceRef, 0, NULL);
+    if (imageRef)
+    {
+        image = AFDecompressedImageWithCGImage(imageRef);
+        CGImageRelease(imageRef);
+    }
+    CFRelease(sourceRef);
+    
+    return image;
+}
+
+static BOOL AFImageHasAlpha(UIImage *image)
+{
+    const CGImageAlphaInfo alpha = CGImageGetAlphaInfo(image.CGImage);
+    return (alpha == kCGImageAlphaFirst ||
+            alpha == kCGImageAlphaLast ||
+            alpha == kCGImageAlphaPremultipliedFirst ||
+            alpha == kCGImageAlphaPremultipliedLast);
+}
+
+
 
 static const NSInteger kDefaultCacheMaxCacheAge = 60 * 60 * 24 * 7; // 1 week
 
@@ -101,7 +207,7 @@ static const NSInteger kDefaultCacheMaxCacheAge = 60 * 60 * 24 * 7; // 1 week
                 [_fileManager createDirectoryAtPath:_diskCachePath withIntermediateDirectories:YES attributes:nil error:NULL];
             }
             
-            [_fileManager createFileAtPath:[self defaultCachePathForKey:key] contents:UIImageJPEGRepresentation(image, 1.0) attributes:nil];
+            [_fileManager createFileAtPath:[self defaultCachePathForKey:key] contents:AFImageHasAlpha(image) ? UIImagePNGRepresentation(image) : UIImageJPEGRepresentation(image, 1.0) attributes:nil];
             
         });
     }
@@ -311,7 +417,7 @@ static const NSInteger kDefaultCacheMaxCacheAge = 60 * 60 * 24 * 7; // 1 week
     NSData *data = [NSData dataWithContentsOfFile:defaultPath];
     if (data) {
 
-        UIImage *image = [UIImage imageWithData:data scale:[UIScreen mainScreen].scale];
+        UIImage *image = AFDecompressedImageWithData(data);
         
         return image;
     }
@@ -321,26 +427,10 @@ static const NSInteger kDefaultCacheMaxCacheAge = 60 * 60 * 24 * 7; // 1 week
 
 - (NSString *)defaultCachePathForKey:(NSString *)key
 {
-    NSString *filename = [self MD5Digest:key];
+    NSString *filename = AFMD5Digest(key);
     return [_diskCachePath stringByAppendingPathComponent:filename];
 }
 
-#pragma mark - Helper
-- (NSString *)MD5Digest:(NSString*)string
-{
-    if(string == nil || [string length] == 0)
-        return nil;
-    
-    const char *cStr = [string UTF8String];
-    unsigned char result[CC_MD5_DIGEST_LENGTH];
-    CC_MD5( cStr, (unsigned int) strlen(cStr), result);
-    return [[NSString alloc] initWithFormat:
-			@"%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
-			result[0], result[1], result[2], result[3],
-			result[4], result[5], result[6], result[7],
-			result[8], result[9], result[10], result[11],
-			result[12], result[13], result[14], result[15]
-			];
-}
-
 @end
+
+
