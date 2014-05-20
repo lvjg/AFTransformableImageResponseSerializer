@@ -14,6 +14,6 @@ Pod::Spec.new do |s|
   s.requires_arc = true
   
 # Pod Dependencies
-  s.dependency 'AFNetworking/Serialization'
+  s.dependency 'AFNetworking'
 
 end

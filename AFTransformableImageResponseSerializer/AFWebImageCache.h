@@ -1,5 +1,5 @@
 //
-//  AFImageCache.h
+//  AFWebImageCache.h
 //  AFTransformableImageResponseSerializer
 //
 //  Created by lvjg on 14-5-17.
