@@ -7,7 +7,7 @@
 //
 
 #import <Foundation/Foundation.h>
-#import <AFNetworking/UIImageView+AFNetworking.h>
+#import <UIImageView+AFNetworking.h>
 
 @interface AFWebImageCache : NSObject<AFImageCache>
 
