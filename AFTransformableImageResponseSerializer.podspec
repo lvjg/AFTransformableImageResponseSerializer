@@ -1,6 +1,7 @@
 Pod::Spec.new do |s|
   s.name         = 'AFTransformableImageResponseSerializer'
   s.version      = '0.0.1'
+  s.license   = 'MIT'
   s.homepage     = 'https://github.com/marchisfy/'
   s.authors      = {'lvjg' => 'lvjg0304@163.com'}
   s.summary      = 'Extension for AFNetworking.'
