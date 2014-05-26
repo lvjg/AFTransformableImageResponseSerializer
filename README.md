@@ -1,2 +1,3 @@
 #AFTransformableImageResponseSerializer
-/Users/lvjg/workspace/GitHub/AFTransformableImageResponseSerializer/Screenshot/demo.png
+
+![demo](/Screenshot/demo.png)
