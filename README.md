@@ -1,1 +1,2 @@
-AFTransformableImageResponseSerializer
+#AFTransformableImageResponseSerializer
+/Users/lvjg/workspace/GitHub/AFTransformableImageResponseSerializer/Screenshot/demo.png
