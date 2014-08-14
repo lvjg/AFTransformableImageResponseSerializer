@@ -317,7 +317,7 @@ static const NSInteger kDefaultCacheMaxCacheAge = 60 * 60 * 24 * 7; // 1 week
     dispatch_async(self.ioQueue, ^
                    {
                        NSURL *diskCacheURL = [NSURL fileURLWithPath:self.diskCachePath isDirectory:YES];
-                       NSArray *resourceKeys = @[ NSURLIsDirectoryKey, NSURLContentAccessDateKey, NSURLTotalFileAllocatedSizeKey ];
+                       NSArray *resourceKeys = @[ NSURLIsDirectoryKey, NSURLContentModificationDateKey, NSURLTotalFileAllocatedSizeKey ];
                        
                        // This enumerator prefetches useful properties for our cache files.
                        NSDirectoryEnumerator *fileEnumerator = [_fileManager enumeratorAtURL:diskCacheURL
@@ -344,7 +344,7 @@ static const NSInteger kDefaultCacheMaxCacheAge = 60 * 60 * 24 * 7; // 1 week
                            }
                            
                            // Remove files that are older than the expiration date;
-                           NSDate *lastAccessDate = resourceValues[NSURLContentAccessDateKey];
+                           NSDate *lastAccessDate = resourceValues[NSURLContentModificationDateKey];
                            if ([[lastAccessDate laterDate:expirationDate] isEqualToDate:expirationDate])
                            {
                                [_fileManager removeItemAtURL:fileURL error:nil];
@@ -368,7 +368,7 @@ static const NSInteger kDefaultCacheMaxCacheAge = 60 * 60 * 24 * 7; // 1 week
                            NSArray *sortedFiles = [cacheFiles keysSortedByValueWithOptions:NSSortConcurrent
                                                                            usingComparator:^NSComparisonResult(id obj1, id obj2)
                                                    {
-                                                       return [obj1[NSURLContentAccessDateKey] compare:obj2[NSURLContentAccessDateKey]];
+                                                       return [obj1[NSURLContentModificationDateKey] compare:obj2[NSURLContentModificationDateKey]];
                                                    }];
                            
                            // Delete files until we fall below our desired cache size.
